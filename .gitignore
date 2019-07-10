@@ -1,0 +1,9 @@
+/*.log
+/target
+/*-init.clj
+/resources/public/js/compiled
+out
+/env
+/*.md-old
+/.lein-repl-history
+/.nrepl-port
