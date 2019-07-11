@@ -2,8 +2,10 @@
 
 Allows to create, edit, see current state and history of orders entities in database.
 
+List view with filters & history
 ![alt text](https://user-images.githubusercontent.com/10473034/61061608-386d7500-a405-11e9-9f15-fc60757c42dc.png "List view")
 
+Edit form view
 ![alt text](https://user-images.githubusercontent.com/10473034/61061423-e6c4ea80-a404-11e9-911b-061c12da9b82.png "Edit order form")
 
 ## Install Datomic
