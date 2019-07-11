@@ -7,34 +7,38 @@
        (mapv (fn [[k v]] (str (name k) "=" v)))
        (str/join "&")))
 
-; (defn kw-2-str [x] (let [kw-ns (namespace x)
-;                          kw-nm (name x)]
-;                      (if (str/blank? kw-ns) kw-nm (str kw-ns "/" kw-nm))))
+; ; (defn kw-2-str [x] (let [kw-ns (namespace x)
+; ;                          kw-nm (name x)]
+; ;                      (if (str/blank? kw-ns) kw-nm (str kw-ns "/" kw-nm))))
 
-(defn kw-2-str [x] (subs (str x) 1))
+; (defn kw-2-str [x] (subs (str x) 1))
 
-(defn clj->js-ns [x] (clj->js x :keyword-fn kw-2-str))
+; (defn clj->js-ns [x] (clj->js x :keyword-fn kw-2-str))
 
 (defn fetch-promise [{:keys [uri token headers params] :as opts}]
-  (let [headers (merge (or headers {})
-                       {"Accept" "application/json"
-                        "Content-Type" "application/json"})
+  (let [content-type "text/clojure" ;; "application/json"
+        headers (merge (or headers {})
+                       {"Accept" content-type
+                        "Content-Type" content-type})
         fetch-opts (-> (merge {:method "GET"
                                :mode "cors"} opts)
                        (dissoc :uri :headers :params)
                        (assoc :headers headers))
         fetch-opts (if (:body opts)
-                     (assoc fetch-opts :body (.stringify js/JSON (clj->js-ns (:body opts))))
+                     ;; (assoc fetch-opts :body (.stringify js/JSON (clj->js-ns (:body opts))))
+                     (assoc fetch-opts :body (pr-str (:body opts))) ;; for text body
                      fetch-opts)
         url uri]
     (->
-     (js/fetch (str url (when params (str "?" (to-query params)))) (clj->js-ns fetch-opts))
+     (js/fetch (str url (when params (str "?" (to-query params)))) (clj->js fetch-opts))
 
-     (.then (fn [resp] (js/Promise.all [resp (.json resp)])))
+     ;; (.then (fn [resp] (js/Promise.all [resp (.json resp)]))) ;; for json body
+     (.then (fn [resp] (js/Promise.all [resp (.text resp)]))) ;; for text body
 
-     (.then (fn [[resp doc]] (let [data (js->clj doc :keywordize-keys true)
+     (.then (fn [[resp doc]] (let [;; data (js->clj doc :keywordize-keys true) ;; for json body
+                                   data (cljs.reader/read-string doc) ;; for text body
                                    res {:request opts
-                                        :response resp
+                                        ;; :response resp it is no needs in response further
                                         :data data}]
                                (if (> (.-status resp) 299)
                                  (let [e (js/Error. (str "failed to fetch " uri))]
@@ -43,7 +47,7 @@
                                    (throw e))
                                  (js/Promise.resolve res)))))
 
-     #_(.catch (fn [e] (throw (js/Error. (str "failed to fetch " uri))))))))
+     (.catch (fn [e] (throw (js/Error. (str "failed to fetch " uri))))))))
 
 (defn error-data [e] (.-params e))
 (defn error-message [e] (.-message e))

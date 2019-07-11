@@ -3,7 +3,8 @@
             [clojure.string :as str]
             [arrival-test-task.widgets :as ws]
             [arrival-test-task.fetch :as fetch]
-            [garden.core :as garden]))
+            [garden.core :as garden]
+            [goog.functions :refer [debounce]]))
 
 (defn to-style [css] [:style (garden/css css)])
 
@@ -26,39 +27,40 @@
 
    [:.content {:margin "0 auto 200px auto"
                :width "80%"
-               :opacity (if fetching? 0.3 1)               
+               :opacity (if fetching? 0.3 1)
                :-webkit-transition "opacity 0.2s" ;; linear" ;; "ease-in"
                }
 
-    [:.header {:display :flex
-               :flex-wrap :wrap
-               :align-items :flex-end
-               :padding "20px 0"}
+    [:.header {:padding "20px 0 10px 0"}
      [:.title {:display :flex
-               :flex-wrap :wrap
-               :align-items :baseline
+               :align-items :start
                :padding-bottom "10px"}
       [:.h {:font-size "30pt"
             :font-weight :bold}]
-      [:.filter {:display :flex
-                 :align-items :baseline}
-       [:.label {:padding "0 10px 0 30px"
-                 :color "#aaa"}]]]
-     [:.actions {:display :flex
-                 :align-items :center
-                ;; :flex-grow 1
-                 :justify-content :flex-end
-                 :margin-left "20px"
-                 :padding-bottom "10px"}
-      [:i {:margin-left "10px"
-           :font-size "2em"}]
-      [:button {:margin-left "20px"}]]]
+      [:.actions {:display :flex
+                  :align-items :center
+                  :justify-content :flex-end
+                  :margin-left "20px"
+                  :padding "10px 0 0 0"}
+       [:i {:margin-left "10px"
+            :font-size "2em"}]
+       [:button {:margin-left "20px"}]]]
+     
+     [:.row {:display :flex
+             :flex-wrap :wrap}
+      [:.text-search {:flex-grow 1}
+       [:.input {:width "100%"
+                 :max-width "500px"}]]
+      [:.non-last {:margin-right "20px"}]]
+     [:.label-input {:padding-bottom "10px"}]
+     [:.label {:color "#aaa"
+               :margin-bottom "5px"}]]
 
     [:.error {:text-align :center
               :color :red
               :font-size "20px"
               :padding-bottom "10px"}]
-    
+
     [:table {:width "100%"
              :border-collapse :collapse}]
     [:th {:color "#aaa"
@@ -141,7 +143,7 @@
 
 
 (defn order-form [{:keys [error order]}]
-  (let [style [:.form {:background :aliceblue
+  (let [style [:.form {:background :floralwhite
                        :width "100%"
                        :position :fixed
                        :z-index 1
@@ -190,19 +192,19 @@
       [:div.row
        [:div.label-input.text.non-last
         [:div.label "Title"]
-        [:div (ws/text {:class :input :path [:order :order/title]})]]
+        (ws/text {:class :input :path [:order :order/title]})]
        [:div.label-input.text.non-last
         [:div.label "Applicant"]
-        [:div (ws/text {:class :input :path [:order :order/applicant]})]]
+        (ws/text {:class :input :path [:order :order/applicant]})]
        [:div.label-input.text.non-last
         [:div.label "Performer"]
-        [:div (ws/text {:class :input :path [:order :order/performer]})]]
+        (ws/text {:class :input :path [:order :order/performer]})]
        [:div.label-input
         [:div.label "Date"]
-        [:div (ws/date {:class :input :path [:order :order/date]})]]]
+        (ws/date {:class :input :path [:order :order/date]})]]
       [:div.label-input
        [:div.label "Description"]
-       [:div (ws/textarea {:class :input :path [:order :order/description]})]]
+       (ws/textarea {:class :input :path [:order :order/description]})]
       [:div.actions
        [:button.btn.save
         {:on-click #(rf/dispatch [::save-order])} "Save order"]
@@ -212,13 +214,19 @@
       [:div.footer]]]))
 
 
+(def debounced-search (debounce
+                       ;; #(rf/dispatch [::model/load-services %])
+                       #(rf/dispatch [::load-order-list]) 300))
+
 (defn order-grid [params]
-  (let [{:keys [order-list error fetching? order order-history] :as ps}
+  (let [{:keys [order-list error fetching? order order-history test] :as ps}
         @(rf/subscribe [:get-values-by-paths {:order-list :order-list
-                                                    :error :error
-                                                    :fetching? :fetching?
-                                                    :order :order
-                                                    :order-history :order-history}])]
+                                              :error :error
+                                              :fetching? :fetching?
+                                              :order :order
+                                              :order-history :order-history
+                                              ;; :test :test
+                                              }])]
     [:div.page
      [to-style (style fetching?)]
 
@@ -230,20 +238,26 @@
       [:div.header
        [:div.title
         [:div.h "Order list"]
-        [:div.filter
-         [:div.label "from"]
-         [:div (ws/date {:class :input :path [:date-from]
-                         :on-change #(rf/dispatch [::load-order-list])})]
-         [:div.label "to"]
-         [:div (ws/date {:class :input :path [:date-to]
-                         :on-change #(rf/dispatch [::load-order-list])})]]]
-       [:div.actions
-        [:i.material-icons.icon-btn
-         {:on-click #(rf/dispatch [:set-values-by-paths {:order {}
-                                                         :error nil}])} :add_circle]
-        [:i.material-icons.icon-btn
-         {:on-click #(rf/dispatch [::load-order-list])} :refresh]]]
-      
+        [:div.actions
+         [:i.material-icons.icon-btn
+          {:on-click #(rf/dispatch [:set-values-by-paths {:order {} :error nil}])} :add_circle]
+         [:i.material-icons.icon-btn
+          {:on-click #(rf/dispatch [::load-order-list])} :refresh]
+        ; [:i.material-icons.icon-btn
+        ;  {:on-click #(rf/dispatch [::fetch-test])} :check_circle]
+         ]]
+       [:div.row
+        [:div.label-input.non-last
+         [:div.label "from"] (ws/date {:class :input :path [:date-from]
+                                       :on-change #(rf/dispatch [::load-order-list])})]
+        [:div.label-input.non-last
+         [:div.label "to"] (ws/date {:class :input :path [:date-to]
+                                     :on-change #(rf/dispatch [::load-order-list])})]
+        [:div.label-input.text-search
+         [:div.label "fulltext search"] (ws/text {:class :input :path [:text-search]
+                                                  :placeholder "Search..."
+                                                  :on-change debounced-search})]]]
+
       [:div.error (str error)]
 
       ;; fetching? [:div.loader "Loading"]
@@ -274,14 +288,14 @@
               ;;
               (into (mapcat (fn [[tr-date x]]
                               [[:tr.history
-                            ;; {:key (str id "_1")}
+                                {:key (str id "_1_" (.toISOString tr-date))}
                                 [:td.font14.nowrap (iso-utc-2-locale-date-time tr-date)]
                                 [:td (:order/title x)]
                                 [:td (:order/applicant x)]
                                 [:td (:order/performer x)]
                                 [:td.date (iso-utc-2-locale-date (:order/date x))]]
                                [:tr.history
-                               ;; {:key (str id "_2")}
+                                {:key (str id "_2_" (.toISOString tr-date))}
                                 [:td]
                                 [:td.font14.description {:col-span 4} (:order/description x)]]])
                             (get order-history id)))
@@ -291,7 +305,7 @@
          [:tr
           [:th "ID"] [:th "Title"] [:th "Applicant"] [:th "Performer"] [:th.date "Date"]]]
         ;; (sort-by first > order-list)
-        (vals order-list)
+        (sort-by :order/date > (vals order-list))
         ;;
         )]]]))
 
@@ -299,17 +313,21 @@
 (def backend-url "http://localhost:3000")
 
 
+(defn non-blank-vals [m]
+  (reduce (fn [acc [k v]] (if (str/blank? v) acc (assoc acc k v))) nil m))
+
+
 (rf/reg-event-fx
  ::load-order-list
  (fn [{db :db} _]
    (when-not (:fetching? db)
-     (let [{:keys [date-from date-to]} db]
-       {:fetch-promise
-        (-> (fetch/fetch-promise {:uri (str backend-url "/order")
-                                  :params (cond-> nil
-                                            (not (str/blank? date-from)) (assoc :date-from date-from)
-                                            (not (str/blank? date-to)) (assoc :date-to date-to))})
-            (.then (fn [x] (rf/dispatch [:set-values-by-paths {:order-list (:data x)}]))))}))))
+     {:fetch-promise
+      (-> (fetch/fetch-promise {:uri (str backend-url "/order")
+                                :params (non-blank-vals
+                                         (select-keys db [:date-from
+                                                          :date-to
+                                                          :text-search]))})
+          (.then (fn [x] (rf/dispatch [:set-values-by-paths {:order-list (:data x)}]))))})))
 
 (rf/reg-event-fx
  ::save-order
@@ -329,8 +347,11 @@
                    (let [id (get-in order [:data :db/id])]
                      (rf/dispatch
                       [:set-values-by-paths
-                       (cond-> {[:order-list (keyword (str id))]
-                                (update (:data order) :order/date iso-utc-2-iso-local)
+                       (cond-> {[:order-list
+                                 ;; (keyword (str id)) veird keywordised keys thru json!!!
+                                 id]
+                                ;; (update (:data order) :order/date iso-utc-2-iso-local)
+                                (:data order)
                                 :order nil}
                          history (assoc [:order-history id] (:data history)))])))))})))
 
@@ -353,7 +374,16 @@
        {:fetch-promise
         (-> (fetch/fetch-promise {:uri (str backend-url "/order-history/" id)})
             (.then (fn [x] (rf/dispatch [:set-values-by-paths
-                                               {[:order-history id] (:data x)}]))))}))))
+                                         {[:order-history id] (:data x)}]))))}))))
+
+; (rf/reg-event-fx
+;  ::fetch-test
+;  (fn [{db :db} _]
+;    (when-not (:fetching? db)
+;        {:fetch-promise
+;         (-> (fetch/fetch-promise {:uri (str backend-url "/test")})
+;             (.then (fn [x] (rf/dispatch [:set-values-by-paths {:test (:data x)}]))))})))
+
 
 (def routes {:order-grid (fn [params]
                            (rf/dispatch [::load-order-list params])

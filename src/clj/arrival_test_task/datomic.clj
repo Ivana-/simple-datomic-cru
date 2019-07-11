@@ -95,23 +95,27 @@
 
 (defn parse-date [s] (.parse simple-date-format (str s)))
 
-(defn order-list [{:keys [date-from date-to] :as params}]
+
+; [:find ?entity ?name ?tx ?score
+;  :in $ ?search
+;  :where [(fulltext $ :artist/name ?search) [[?entity ?name ?tx ?score]]]]
+
+(defn order-list [{:keys [date-from date-to text-search] :as params}]
   (try-wraps
    (let [db (d/db (:conn context))]
      (->>
-      (d/q (filterv identity
-                    [:find '?e '?title '?description '?applicant '?performer '?date
+      (d/q (cond-> '[:find ?e ?title ?description ?applicant ?performer ?date
                      :where
-                     ['?e :order/title]
-                     ['?e :order/title '?title]
-                     ['?e :order/description '?description]
-                     ['?e :order/applicant '?applicant]
-                     ['?e :order/performer '?performer]
-                     ['?e :order/date '?date]
-                     (when date-from [(list '>= '?date (parse-date date-from))])
-                     (when date-to   [(list '<= '?date (parse-date date-to))])
-                     ;;
-                     ])
+                     [?e :order/title]
+                     [?e :order/title ?title]
+                     [?e :order/description ?description]
+                     [?e :order/applicant ?applicant]
+                     [?e :order/performer ?performer]
+                     [?e :order/date ?date]]
+             date-from (conj [(list '>= '?date (parse-date date-from))])
+             date-to   (conj [(list '<= '?date (parse-date date-to))])
+             text-search (into ['[(str ?title ?description ?applicant ?performer) ?fts]
+                                [(list '.contains '?fts text-search)]]))
            db)
       (reduce (fn [acc v] (assoc acc (first v) (zipmap [:db/id
                                                         :order/title
@@ -343,8 +347,19 @@
          [?e :movie/title ?title]
          [?e :movie/release-year ?year]
          [?e :movie/genre ?genre]
-         ;; [?e :movie/release-year 1985]
-         [(>= ?year 1991)]]
+         ;; [?e :movie/release-year 1985] ;; works!
+         ;; [(>= ?year 1991)] ;; works!
+         ;; [(fulltext $ :order/description ?search) [[?e ?title ?year ?genre]]]
+        ;  [(fulltext $ :movie/title ?title) [[?title]] ;; [[?e ?title ?year ?genre]]
+        ;   ]
+         
+         ;; [(.startsWith ?title "Com")] ;; works!
+         ;; [(.contains ?title "man")] ;; works!
+         
+         [(str ?title ?genre) ?zzz]
+         [(.contains ?zzz "ver")] ;; works!
+         ;;
+         ]
        db)
 
   ; {:query

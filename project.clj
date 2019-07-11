@@ -9,7 +9,8 @@
                  [yogthos/config "1.1.2"]
                  [ring "1.7.1"]
                  ;;
-                 [ring-middleware-format "0.7.4"]
+                 ;; [cheshire "5.8.1"]
+                 ;; [ring-middleware-format "0.7.4"]
                  ;; [com.datomic/client-pro "0.8.28"]
                  [com.datomic/datomic-pro "0.9.5927" :exclusions [com.google.guava/guava]]
                  [clj-commons/secretary "1.2.4"]
