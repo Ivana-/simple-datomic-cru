@@ -14,9 +14,17 @@ Edit form view
 
 <https://www.datomic.com/get-datomic.html> (Starter - free)
 
+The exact Datomic version, used in this project, is `pro-0.9.5927`
+
+It can be loaded from <https://my.datomic.com/downloads/pro> choose `datomic-pro-0.9.5927.zip`
+
+You can install another Datomic-pro version, but in this case set appropriate dependency in `project.clj`
+
 ## Development Mode
 
 ### Start Datomic transactor:
+
+Docs <https://docs.datomic.com/on-prem/dev-setup.html#run-dev-transactor>
 
 ```
 bin/transactor <your-config-file>
@@ -26,7 +34,7 @@ By default, it starts at `datomic:dev://localhost:4334/`
 
 ### Run server:
 
-Set environment variables (getting from your Datomic registration)
+Set environment variables (getting from your Datomic registration - https://my.datomic.com/account : Technical Contact & Download Key)
 
 ```
 DATOMIC_USERNAME

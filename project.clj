@@ -14,6 +14,8 @@
                  ;; [com.datomic/client-pro "0.8.28"]
                  [com.datomic/datomic-pro "0.9.5927" :exclusions [com.google.guava/guava]]
                  [clj-commons/secretary "1.2.4"]
+                 
+                 [day8.re-frame/test "0.1.5"]
                  ;;
                  ]
 
@@ -43,38 +45,59 @@
                      :compiler     {:output-to     "resources/public/css/screen.css"
                                     :pretty-print? true}}]}
 
-  :profiles
-  {:dev {:dependencies [[binaryage/devtools "0.9.10"]
-                        [re-frisk "0.5.4.1"]]
+  :profiles {:dev {:dependencies [[binaryage/devtools "0.9.10"]
+                                  [re-frisk "0.5.4.1"]]
 
-         :plugins      [[lein-figwheel "0.5.18"]]}
-   :prod {}
-   :uberjar {:source-paths ["env/prod/clj"]
-             :omit-source  true
-             :main         arrival-test-task.server
-             :aot          [arrival-test-task.server]
-             :uberjar-name "arrival_test_task.jar"
-             :prep-tasks   ["compile" ["cljsbuild" "once" "min"]["garden" "once"]]}}
+                   :plugins      [[lein-figwheel "0.5.18"]]
 
-  :cljsbuild
-  {:builds
-   [{:id           "dev"
-     :source-paths ["src/cljs"]
-     :figwheel     {:on-jsload "arrival_test_task.core/mount-root"}
-     :compiler     {:main                 arrival_test_task.core
-                    :output-to            "resources/public/js/compiled/app.js"
-                    :output-dir           "resources/public/js/compiled/out"
-                    :asset-path           "js/compiled/out"
-                    :source-map-timestamp true
-                    :preloads             [devtools.preload
-                                           re-frisk.preload]
-                    :external-config      {:devtools/config {:features-to-install :all}}}}
 
-    {:id           "min"
-     :source-paths ["src/cljs"]
-     :jar true
-     :compiler     {:main            arrival_test_task.core
-                    :output-to       "resources/public/js/compiled/app.js"
-                    :optimizations   :advanced
-                    :closure-defines {goog.DEBUG false}
-                    :pretty-print    false}}]})
+
+
+
+
+
+                  ; :source-paths ["test"]
+                  ; :test-path "test"
+                   
+                  :extra-paths ["test"] ;; ["ui/srcs" "ui/test" "backend/test"]
+                  ;  :extra-deps {com.cognitect/test-runner
+                  ;               {:git/url "https://github.com/cognitect-labs/test-runner.git"
+                  ;                :sha "3cb0a9daf1cb746259dc8309b218f9211ad3b33b"}
+                                ; faker {:mvn/version "0.2.2"}
+                                ; re-frame {:mvn/version "0.10.5"}
+                                ; org.clojure/tools.cli {:mvn/version "0.4.1"}
+                                
+                                ; nrepl/nrepl {:mvn/version "0.6.0"}
+                                ; refactor-nrepl {:mvn/version "2.4.0"}
+                                ; cider/cider-nrepl {:mvn/version "0.22.0-beta4"}
+                  ;              }
+                   ;;
+                   }
+             :prod {}
+             :uberjar {:source-paths ["env/prod/clj"]
+                       :omit-source  true
+                       :main         arrival-test-task.server
+                       :aot          [arrival-test-task.server]
+                       :uberjar-name "arrival_test_task.jar"
+                       :prep-tasks   ["compile" ["cljsbuild" "once" "min"]["garden" "once"]]}}
+
+  :cljsbuild {:builds [{:id           "dev"
+                        :source-paths ["src/cljs"]
+                        :figwheel     {:on-jsload "arrival_test_task.core/mount-root"}
+                        :compiler     {:main                 arrival_test_task.core
+                                       :output-to            "resources/public/js/compiled/app.js"
+                                       :output-dir           "resources/public/js/compiled/out"
+                                       :asset-path           "js/compiled/out"
+                                       :source-map-timestamp true
+                                       :preloads             [devtools.preload
+                                                              re-frisk.preload]
+                                       :external-config      {:devtools/config {:features-to-install :all}}}}
+
+                       {:id           "min"
+                        :source-paths ["src/cljs"]
+                        :jar true
+                        :compiler     {:main            arrival_test_task.core
+                                       :output-to       "resources/public/js/compiled/app.js"
+                                       :optimizations   :advanced
+                                       :closure-defines {goog.DEBUG false}
+                                       :pretty-print    false}}]})

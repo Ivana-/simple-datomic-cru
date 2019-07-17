@@ -1,6 +1,7 @@
 (ns arrival-test-task.fetch
   (:require [re-frame.core :as rf]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [cljs.reader :as reader]))
 
 (defn to-query [params]
   (->> params
@@ -36,9 +37,8 @@
      (.then (fn [resp] (js/Promise.all [resp (.text resp)]))) ;; for text body
 
      (.then (fn [[resp doc]] (let [;; data (js->clj doc :keywordize-keys true) ;; for json body
-                                   data (cljs.reader/read-string doc) ;; for text body
+                                   data (reader/read-string doc) ;; for text body
                                    res {:request opts
-                                        ;; :response resp it is no needs in response further
                                         :data data}]
                                (if (> (.-status resp) 299)
                                  (let [e (js/Error. (str "failed to fetch " uri))]
@@ -47,21 +47,26 @@
                                    (throw e))
                                  (js/Promise.resolve res)))))
 
-     (.catch (fn [e] (throw (js/Error. (str "failed to fetch " uri))))))))
+      ;; (.catch (fn [e] (throw (js/Error. (str "failed to fetch " uri)))))
+     )))
 
-(defn error-data [e] (.-params e))
-(defn error-message [e] (.-message e))
+; (defn error-data [e] (.-params e))
+; (defn error-message [e] (.-message e))
+
+
+(rf/reg-event-db
+ :fetch-finished
+ (fn [db [_ x]]
+   ;; (prn :fetch-finished)
+   (merge db x)))
 
 (rf/reg-fx
  :fetch-promise
  (fn [p]
    (rf/dispatch [:set-values-by-paths {:fetching? true}])
    (-> p
-       (.then (fn [_] (rf/dispatch [:set-values-by-paths
-                                    {:error nil
-                                     :fetching? false}])))
-       (.catch (fn [e]
-                 (let [{{message :message} :data} (error-data e)]
-                   (rf/dispatch [:set-values-by-paths
-                                 {:error (or message (error-message e))
-                                  :fetching? false}])))))))
+       (.then (fn [_] (rf/dispatch [:fetch-finished {:error nil
+                                                     :fetching? false}])))
+       (.catch (fn [e] (let [{{message :message} :data} (.-params e)]
+                         (rf/dispatch [:fetch-finished {:error (or message (.-message e))
+                                                        :fetching? false}])))))))

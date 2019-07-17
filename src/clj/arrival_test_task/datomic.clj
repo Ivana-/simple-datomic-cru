@@ -1,11 +1,14 @@
 (ns arrival-test-task.datomic
-  (:require [datomic.api :as d]))
+  (:require [datomic.api :as d]
+            [clojure.string :as str]))
 
 ;; peer library
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; start database connections, schema loading, etc.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defonce context (atom nil))
 
 (defn try-chain [m f err-str]
   (if (:error m)
@@ -16,9 +19,12 @@
         (assoc m :error (str (.getMessage e) " " err-str
                              " Check if datomic is installed and transactor is running"))))))
 
-(def context
+(def main-db-name "hello")
+
+;; (def context
+(defn create-context [db-name]
   (-> {:db-domain-host-port "datomic:dev://localhost:4334/"
-       :db-name "hello"
+       :db-name db-name
        ;; title, description, applicant, performer and date
        :schema [{:db/ident :order/title
                  :db/valueType :db.type/string
@@ -74,12 +80,14 @@
       ;;
       ))
 
+(reset! context (create-context main-db-name))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; queries/transactions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defmacro try-wraps [body]
-  `(if-let [context-error# (:error context)]
+  `(if-let [context-error# (:error @context)]
     {:status 400
      :body {:message context-error#}}
     (try
@@ -96,13 +104,26 @@
 (defn parse-date [s] (.parse simple-date-format (str s)))
 
 
+(defn switch-database [{:keys [db-name] :as params}]
+  (try-wraps
+   (let [db-name-used (if (str/blank? db-name) main-db-name db-name)]
+
+     ;; delete current database when it is not main-db-name
+     (when-not (= main-db-name (:db-name @context))
+       (d/delete-database (:db-uri @context)))
+
+     ;; switch to db-name-used database
+     (reset! context (create-context db-name-used))
+     {:db-name db-name-used})))
+
 ; [:find ?entity ?name ?tx ?score
 ;  :in $ ?search
 ;  :where [(fulltext $ :artist/name ?search) [[?entity ?name ?tx ?score]]]]
 
 (defn order-list [{:keys [date-from date-to text-search] :as params}]
+  ;; (Thread/sleep 3000)
   (try-wraps
-   (let [db (d/db (:conn context))]
+   (let [db (d/db (:conn @context))]
      (->>
       (d/q (cond-> '[:find ?e ?title ?description ?applicant ?performer ?date
                      :where
@@ -126,11 +147,11 @@
 
 (defn order-by-id [id]
   (try-wraps
-   (d/pull (d/db (:conn context)) '[*] id)))
+   (d/pull (d/db (:conn @context)) '[*] id)))
 
 (defn order-history-by-id [id]
   (try-wraps
-   (let [db (d/db (:conn context))
+   (let [db (d/db (:conn @context))
          hdb (d/history db)]
      (->> id
           (d/q
@@ -147,13 +168,16 @@
           (sort-by first)))))
 
 (defn order-save [params]
+  
+  (prn :order-save params)
+  
   (try-wraps
-   (let [t @(d/transact (:conn context) [(update params :order/date parse-date)])
+   (let [t @(d/transact (:conn @context) [(update params :order/date parse-date)])
          id (or (:db/id params) ;; update existing id
                 (-> (:tempids t) vals first) ;; created id on create resource
                 )]
      ;; (order-by-id id)
-     (d/pull (d/db (:conn context)) '[*] id))))
+     (d/pull (d/db (:conn @context)) '[*] id))))
 
 
 ; (prn "=============== transaction " t)
@@ -221,13 +245,35 @@
 
 (comment
 
-  (def conn (:conn context))
+  (d/get-database-names "datomic:dev://localhost:4334/*")
+
+  (:db-name @context)
+
+  (do
+    (d/delete-database "datomic:dev://localhost:4334/test")
+    (reset! context (create-context "test")))
+
+  (do
+    (d/delete-database "datomic:dev://localhost:4334/test")
+    (reset! context (create-context main-db-name)))
+
+
+  (d/delete-database (str "datomic:dev://localhost:4334/" main-db-name)) ;; !!!!!!!!!
+
+  ;; (d/create-database (:db-uri m))
+  ;; (d/connect (:db-uri @context)) ;; "datomic:dev://localhost:4334/hello"
+
+  ;; (d/delete-database (:db-uri @context))
+
+
+
+  (def conn (:conn @context))
 
   ; @(d/transact conn [{:db/doc "Hello world"}])
 
   (def db (d/db conn))
 
-  (d/get-database-names (str (:db-domain-host-port context) "*"))
+  (d/get-database-names (str (:db-domain-host-port @context) "*"))
 
 
   (def x1 (java.text.SimpleDateFormat. "yyyy-MM-dd"))
@@ -236,6 +282,7 @@
   (type (.parse x1 "2014-08-06"))
 
 
+  (parse-date "2019-07-17") ;; #inst "2019-07-16T21:00:00.000-00:00"
   (parse-date nil)
 
 
@@ -352,10 +399,10 @@
          ;; [(fulltext $ :order/description ?search) [[?e ?title ?year ?genre]]]
         ;  [(fulltext $ :movie/title ?title) [[?title]] ;; [[?e ?title ?year ?genre]]
         ;   ]
-         
+
          ;; [(.startsWith ?title "Com")] ;; works!
          ;; [(.contains ?title "man")] ;; works!
-         
+
          [(str ?title ?genre) ?zzz]
          [(.contains ?zzz "ver")] ;; works!
          ;;
@@ -472,7 +519,23 @@
 
   ; (def client (d/client cfg))
 
-  ; (def conn (d/connect client {:db-name "hello"}))
+  ; (def conn (d/connect client {:db-name main-db-name}))
 
   ;;
   )
+
+
+(defmacro comment- [& x])
+
+
+(comment
+
+  (do
+    (Thread/sleep 3000)
+    (+ 1 2 3)
+     ;;
+    )
+
+  (prn 33))
+
+;; (prn 44)

@@ -116,30 +116,10 @@
     [:div.loader [to-style style]]))
 
 
-(defn iso-utc-2-iso-local [s]
-  (if-not (str/blank? s)
-    (let [;; (.toISOString  (js/Date. (js/Date.parse date)))
-          ms-utc (js/Date.parse s)
-          date (js/Date. ms-utc)
-          offset-ms (* 60 1000 (.getTimezoneOffset date))
-          ms-local (- (.getTime date) offset-ms)
-
-          date-local (js/Date. ms-local)
-          iso-local (.toISOString date-local)]
-      (subs iso-local 0 10))))
-
 (defn iso-utc-2-locale-date [s]
   (if-not (str/blank? s) (.toLocaleDateString (js/Date. (js/Date.parse s)))))
 (defn iso-utc-2-locale-date-time [s]
   (if-not (str/blank? s) (.toLocaleString (js/Date. (js/Date.parse s)))))
-
-  ; function dateToISOLikeButLocal(date) {const offsetMs = date.getTimezoneOffset() * 60 * 1000;
-  ;                                       const msLocal =  date.getTime() - offsetMs;
-  ;                                       const dateLocal = new Date(msLocal);
-  ;                                       const iso = dateLocal.toISOString();
-  ;                                       const isoLocal = iso.slice(0, 19);
-  ;                                       return isoLocal;
-  ;                                       })
 
 
 (defn order-form [{:keys [error order]}]
@@ -243,9 +223,8 @@
           {:on-click #(rf/dispatch [:set-values-by-paths {:order {} :error nil}])} :add_circle]
          [:i.material-icons.icon-btn
           {:on-click #(rf/dispatch [::load-order-list])} :refresh]
-        ; [:i.material-icons.icon-btn
-        ;  {:on-click #(rf/dispatch [::fetch-test])} :check_circle]
-         ]]
+         #_[:i.material-icons.icon-btn
+          {:on-click #(rf/dispatch [::fetch-test])} :check_circle]]]
        [:div.row
         [:div.label-input.non-last
          [:div.label "from"] (ws/date {:class :input :path [:date-from]
@@ -312,9 +291,29 @@
 
 (def backend-url "http://localhost:3000")
 
-
 (defn non-blank-vals [m]
   (reduce (fn [acc [k v]] (if (str/blank? v) acc (assoc acc k v))) nil m))
+
+
+(defn iso-utc-2-iso-local [s]
+  (if-not (str/blank? s)
+    (let [;; (.toISOString  (js/Date. (js/Date.parse date)))
+          ms-utc (js/Date.parse s)
+          date (js/Date. ms-utc)
+          offset-ms (* 60 1000 (.getTimezoneOffset date))
+          ms-local (- (.getTime date) offset-ms)
+
+          date-local (js/Date. ms-local)
+          iso-local (.toISOString date-local)]
+      (subs iso-local 0 10))))
+
+  ; function dateToISOLikeButLocal(date) {const offsetMs = date.getTimezoneOffset() * 60 * 1000;
+  ;                                       const msLocal =  date.getTime() - offsetMs;
+  ;                                       const dateLocal = new Date(msLocal);
+  ;                                       const iso = dateLocal.toISOString();
+  ;                                       const isoLocal = iso.slice(0, 19);
+  ;                                       return isoLocal;
+  ;                                       })
 
 
 (rf/reg-event-fx
@@ -369,7 +368,7 @@
  ::fetch-order-history
  (fn [{db :db} [_ id]]
    (if (get-in db [:order-history id])
-     (rf/dispatch [:set-values-by-paths {[:order-history id] nil}])
+     {:db (update db :order-history dissoc id)}
      (when-not (:fetching? db)
        {:fetch-promise
         (-> (fetch/fetch-promise {:uri (str backend-url "/order-history/" id)})
