@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/Ivana-/simple-datomic-cru.svg?branch=master)](https://travis-ci.org/Ivana-/simple-datomic-cru)
+
 # Simple Datomic CRU
 
 Allows to create, edit, see current state and history of orders entities in database.
