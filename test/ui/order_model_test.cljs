@@ -1,12 +1,19 @@
 (ns ui.order-model-test
-  (:require [cljs.test :refer-macros [deftest is testing run-tests      use-fixtures async]]
-            [day8.re-frame.test :as t]
+  (:require ;; [cljs.test :refer-macros [deftest is testing run-tests      use-fixtures async]]
+   [clojure.test :refer [deftest is testing run-tests      use-fixtures async]]
+   [day8.re-frame.test :as t]
             ;; [matcho.core :as matcho]
-            [re-frame.core :as rf]
-            [ui.macroses :refer-macros [<<-]]
-            [ui.utils :as utils]
-            [clojure.string :as str]
-            [arrival-test-task.order-grid :as sut]))
+   [re-frame.core :as rf]
+   [ui.macroses :refer-macros [<<-]]
+   [ui.utils :as utils]
+   [clojure.string :as str]
+   [arrival-test-task.order-grid :as sut]
+   [arrival-test-task.events]))
+
+(deftest ttt
+  (testing "testing test"
+    (is (= 3 (<<- (+ 1 2))))))
+
 
 
 (comment
@@ -152,13 +159,14 @@
       ))))
 
 
-(defmethod cljs.test/report [:cljs.test/default :end-run-tests] [m]
-  (if (cljs.test/successful? m)
-    (println "Success!")
-    (println "FAIL")))
+; (defmethod cljs.test/report [:cljs.test/default :end-run-tests] [m]
+;   (if (cljs.test/successful? m)
+;     (println "Success!")
+;     (println "FAIL")))
 
 
 (comment
+  (enable-console-print!)
   (run-tests)
 
   (identity @re-frame.db/app-db)

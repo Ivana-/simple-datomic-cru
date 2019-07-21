@@ -1,12 +1,12 @@
 (ns ui.macroses)
 
 
-(defmacro cond-let
-  ([] nil)
-  ([x] (throw (IllegalArgumentException. "cond-let error: last one form")))
-  ([a b & forms] (if (vector? a)
-                   `(let ~a (cond-let ~b ~@forms))
-                   `(if ~a ~b (cond-let ~@forms)))))
+; (defmacro cond-let
+;   ([] nil)
+;   ([x] (throw (IllegalArgumentException. "cond-let error: last one form")))
+;   ([a b & forms] (if (vector? a)
+;                    `(let ~a (cond-let ~b ~@forms))
+;                    `(if ~a ~b (cond-let ~@forms)))))
 
 (defmacro <<- [& forms] `(->> ~@(reverse forms)))
 

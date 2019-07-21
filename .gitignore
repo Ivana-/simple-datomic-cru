@@ -7,3 +7,4 @@ out
 /*.md-old
 /.lein-repl-history
 /.nrepl-port
+/node-modules
