@@ -41,7 +41,10 @@ backend-test:
 # make ui-test -j2
 
 .PHONY: ui-test
-ui-test: karma datomic-start start ui-test-core
+ui-test: preparings-for-ci-tests ui-test-core
+
+.PHONY: preparings-for-ci-tests
+preparings-for-ci-tests: karma datomic-start start
 
 .PHONY: ui-test-core
 ui-test-core:

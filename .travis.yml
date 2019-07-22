@@ -6,8 +6,9 @@ env:
   - DATOMIC_PASSWORD="325e0e0f-d426-4768-9cbf-bd2cd42c478c"
 
 before_script:
-    - "make ui-test"
-    - sleep 3
+  # - "make ui-test"
+  - "make preparings-for-ci-tests"
+  - sleep 3
 
 script:
 - lein test
