@@ -7,7 +7,3 @@ before_script:
 script:
 - lein test
 - lein doo chrome-headless test once
-
-
-# https://github.com/cldwalker/datomic-box
-# https://grishaev.me/en/pg-to-datomic/
