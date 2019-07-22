@@ -1,9 +1,9 @@
 language: clojure
 
-env:
-  global:
-  - DATOMIC_USERNAME="ivana_2004@mail.ru"
-  - DATOMIC_PASSWORD="325e0e0f-d426-4768-9cbf-bd2cd42c478c"
+# env:
+#   global:
+#   - DATOMIC_USERNAME="ivana_2004@mail.ru"
+#   - DATOMIC_PASSWORD="325e0e0f-d426-4768-9cbf-bd2cd42c478c"
 
 before_script:
   # - "make ui-test"

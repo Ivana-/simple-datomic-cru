@@ -59,11 +59,21 @@ start:
 	lein run &
 
 
+
+.PHONY: transactor-config
+transactor-config:
+	# cd datomic-pro-0.9.5927
+	# ./bin/transactor config/dev-transactor.properties
+	cat dev-transactor-template.properties | sed "s/license-key=/license-key=$(DATOMIC_LICENSE_KEY)/" > datomic-pro-0.9.5927/config/dev-transactor.properties
+
+
 .PHONY: datomic-start
-datomic-start:
+datomic-start: transactor-config
 	# cd datomic-pro-0.9.5927
 	# ./bin/transactor config/dev-transactor.properties
 	./datomic-pro-0.9.5927/bin/transactor config/dev-transactor.properties &
+
+
 
 .PHONY: karma
 karma:
