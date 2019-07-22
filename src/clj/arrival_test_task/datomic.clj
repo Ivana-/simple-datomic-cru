@@ -168,9 +168,6 @@
           (sort-by first)))))
 
 (defn order-save [params]
-  
-  (prn :order-save params)
-  
   (try-wraps
    (let [t @(d/transact (:conn @context) [(update params :order/date parse-date)])
          id (or (:db/id params) ;; update existing id
@@ -245,6 +242,9 @@
 
 (comment
 
+  ;; testings
+  (d/get-database-names "datomic:dev://0.0.0.0:4334/*")
+  
   (d/get-database-names "datomic:dev://localhost:4334/*")
 
   (:db-name @context)
@@ -259,18 +259,18 @@
 
 
   (d/delete-database (str "datomic:dev://localhost:4334/" main-db-name)) ;; !!!!!!!!!
-
+  
   ;; (d/create-database (:db-uri m))
   ;; (d/connect (:db-uri @context)) ;; "datomic:dev://localhost:4334/hello"
-
+  
   ;; (d/delete-database (:db-uri @context))
-
+  
 
 
   (def conn (:conn @context))
 
   ; @(d/transact conn [{:db/doc "Hello world"}])
-
+  
   (def db (d/db conn))
 
   (d/get-database-names (str (:db-domain-host-port @context) "*"))
@@ -294,10 +294,10 @@
 
   (seq (d/pull db '[*] 17592186045440)) ;; ([:db/id 17592186045440] [:order/title "t2"] [:order/description "d2"] [:order/applicant "a2"] [:order/performer "p2"] [:order/date #inst "2019-07-05T21:00:00.000-00:00"])
   (seq (d/pull db '[*] 17592186045449)) ;; ([:db/id 17592186045449])
-
+  
   (d/entity db 17592186045440) ;; #:db{:id 17592186045440}
   (d/entity db 17592186045449) ;; #:db{:id 17592186045449}
-
+  
   (def hdb (d/history db))
   (seq (d/pull hdb '[*] 17592186045440))
   (->> 17592186045440
@@ -330,7 +330,7 @@
   ;   [17592186045440 :order/description "d2" 13194139534339 false #inst "2019-07-06T22:42:31.873-00:00"] 
   ;   [17592186045440 :order/date        #inst "2019-07-05T21:00:00.000-00:00" 13194139534335 true #inst "2019-07-05T16:43:16.370-00:00"] 
   ;   [17592186045440 :order/description "d2" 13194139534335 true  #inst "2019-07-05T16:43:16.370-00:00"]}
-
+  
 
   (defn entity-history
     "Takes an entity and shows all the transactions that touched this entity.
@@ -399,10 +399,10 @@
          ;; [(fulltext $ :order/description ?search) [[?e ?title ?year ?genre]]]
         ;  [(fulltext $ :movie/title ?title) [[?title]] ;; [[?e ?title ?year ?genre]]
         ;   ]
-
+         
          ;; [(.startsWith ?title "Com")] ;; works!
          ;; [(.contains ?title "man")] ;; works!
-
+         
          [(str ?title ?genre) ?zzz]
          [(.contains ?zzz "ver")] ;; works!
          ;;
@@ -425,7 +425,7 @@
   ;    [(> ?birth-date ?toAge)]
   ;    [?user :gender ?gender]]}
   ;  :args [<db-object> [:location/id 42] 1504210734 1504280734 20 30 "m"]}
-
+  
   (d/q (filterv
         identity
         [:find '?e
@@ -442,7 +442,7 @@
 
         ;  '[?id :id/name ?e]
         ;  '[?date :date/name ?date]
-
+         
         ;; ['?e :order/date y]
          [(list '<= '?date (parse-date "2019-07-08"))]
          ;;
@@ -496,7 +496,7 @@
   (seq? qr) ;; false
   (coll? qr) ;; false
   (sequential? qr) ;; false
-
+  
   (seqable? qr) ;; true
   (map identity qr)
 

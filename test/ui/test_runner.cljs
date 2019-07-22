@@ -29,6 +29,8 @@
 ;; https://lispcast.com/testing-clojurescript/
 ;; https://figwheel.org/docs/testing.html
 
+;; https://github.com/Day8/re-frame-template
+
 
 ;; (run-all-tests)
 ;; (run-tests 'ui.order-model-test)
