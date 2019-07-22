@@ -1,6 +1,6 @@
+DATOMIC_VERSION=0.9.5927
 
-
-# .EXPORT_ALL_VARIABLES:
+.EXPORT_ALL_VARIABLES:
 
 
 # http://qaru.site/questions/770124/running-two-processes-in-parallel-from-makefile
@@ -58,11 +58,25 @@ install-karma:
 	npm install karma karma-cljs-test karma-chrome-launcher --save-dev
 
 
+
+# ONBUILD RUN curl -u $(cat /tmp/.credentials) -SL https://my.datomic.com/repo/com/datomic/datomic-pro/$DATOMIC_VERSION/datomic-pro-$DATOMIC_VERSION.zip -o /tmp/datomic.zip \
+#   && unzip /tmp/datomic.zip -d /opt \
+#   && rm -f /tmp/datomic.zip
+
+
+# ONBUILD RUN curl -u $DATOMIC_CREDS -SL $DATOMIC_URL -o /tmp/datomic.zip \
+RUN curl -u ivana_2004@mail.ru:325e0e0f-d426-4768-9cbf-bd2cd42c478c -SL https://my.datomic.com/repo/com/datomic/datomic-pro/0.9.5927/datomic-pro-0.9.5927.zip -o /tmp/datomic.zip
+# RUN unzip /tmp/datomic.zip -d /opt
+
+
 .PHONY: datomic-ci-start
 datomic-ci-start:
-	unzip test/datomic_template/datomic.zip
-	cat test/datomic_template/dev-transactor-template.properties | sed "s/license-key=/license-key=$(DATOMIC_LICENSE_KEY)/" > datomic-pro-0.9.5927/config/dev-transactor.properties
-	./datomic-pro-0.9.5927/bin/transactor config/dev-transactor.properties &
+	curl -u $(DATOMIC_USERNAME):$(DATOMIC_PASSWORD) -SL https://my.datomic.com/repo/com/datomic/datomic-pro/$(DATOMIC_VERSION)/datomic-pro-$(DATOMIC_VERSION).zip -o datomic.zip
+	unzip datomic.zip
+	# rm -f datomic.zip
+	# cat test/datomic_template/dev-transactor-template.properties | sed "s/license-key=/license-key=$(DATOMIC_LICENSE_KEY)/" > datomic-pro-$(DATOMIC_VERSION)/config/dev-transactor.properties
+	cat datomic-pro-$(DATOMIC_VERSION)/config/samples/dev-transactor-template.properties | sed "s/license-key=/license-key=$(DATOMIC_LICENSE_KEY)/" > datomic-pro-$(DATOMIC_VERSION)/config/dev-transactor.properties
+	./datomic-pro-$(DATOMIC_VERSION)/bin/transactor config/dev-transactor.properties &
 
 
 .PHONY: start
@@ -128,30 +142,3 @@ start:
 # 	make up
 # 	docker run -it --rm --net cleo-global-net --name wait eremec/wait
 # 	clj -A:clj:dev -m "cognitect.test-runner" -d "ui/test"
-
-
-
-# DOCKER_IMAGE=datomic-pro-starter
-# #pointslope/datomic-pro-starter
-# DOCKER_TAG?=0.9.5927
-# #$(shell ./datomic-version)
-
-# .PHONY: all build run run-bash clean info
-
-# # all: Dockerfile
-# # 	docker build -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
-
-# build: Dockerfile
-# 	docker build -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
-
-# run:
-# 	docker run $(DOCKER_IMAGE):$(DOCKER_TAG)
-
-# run-bash:
-# 	docker run --rm -it $(DOCKER_IMAGE):$(DOCKER_TAG) bash
-
-# clean:
-# 	docker rmi $(DOCKER_IMAGE):$(DOCKER_TAG)
-
-# info:
-# 	@echo "Docker image: $(DOCKER_IMAGE):$(DOCKER_TAG)"
