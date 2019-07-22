@@ -1,6 +1,6 @@
 
 
-.EXPORT_ALL_VARIABLES:
+# .EXPORT_ALL_VARIABLES:
 
 
 # http://qaru.site/questions/770124/running-two-processes-in-parallel-from-makefile
@@ -36,8 +36,6 @@ backend-test:
 .PHONY: ui-test
 ui-test: preparings-for-ci-tests ui-test-core
 
-.PHONY: preparings-for-ci-tests
-preparings-for-ci-tests: karma datomic-start start
 
 .PHONY: ui-test-core
 ui-test-core:
@@ -47,29 +45,29 @@ ui-test-core:
 	# lein run
 	lein doo chrome-headless test once
 
-.PHONY: start
-start:
-	lein run &
 
 
 
-.PHONY: transactor-config
-transactor-config:
-	cat dev-transactor-template.properties | sed "s/license-key=/license-key=$(DATOMIC_LICENSE_KEY)/" > datomic-pro-0.9.5927/config/dev-transactor.properties
+.PHONY: preparings-for-ci-tests
+preparings-for-ci-tests: install-karma datomic-ci-start start
 
 
-.PHONY: datomic-start
-datomic-start: transactor-config
-	# cd datomic-pro-0.9.5927
-	# ./bin/transactor config/dev-transactor.properties
+.PHONY: install-karma
+install-karma:
+	npm install -g karma-cli
+	npm install karma karma-cljs-test karma-chrome-launcher --save-dev
+
+
+.PHONY: datomic-ci-start
+datomic-ci-start:
+	unzip test/datomic_template/datomic.zip
+	cat test/datomic_template/dev-transactor-template.properties | sed "s/license-key=/license-key=$(DATOMIC_LICENSE_KEY)/" > datomic-pro-0.9.5927/config/dev-transactor.properties
 	./datomic-pro-0.9.5927/bin/transactor config/dev-transactor.properties &
 
 
-
-.PHONY: karma
-karma:
-	npm install -g karma-cli
-	npm install karma karma-cljs-test karma-chrome-launcher --save-dev
+.PHONY: start
+start:
+	lein run &
 
 
 
