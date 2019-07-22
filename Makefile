@@ -1,7 +1,3 @@
-DEVEL=true
-
-DATOMIC_USERNAME = ivana_2004@mail.ru
-DATOMIC_PASSWORD = 325e0e0f-d426-4768-9cbf-bd2cd42c478c
 
 
 .EXPORT_ALL_VARIABLES:
@@ -62,8 +58,6 @@ start:
 
 .PHONY: transactor-config
 transactor-config:
-	# cd datomic-pro-0.9.5927
-	# ./bin/transactor config/dev-transactor.properties
 	cat dev-transactor-template.properties | sed "s/license-key=/license-key=$(DATOMIC_LICENSE_KEY)/" > datomic-pro-0.9.5927/config/dev-transactor.properties
 
 
