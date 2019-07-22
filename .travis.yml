@@ -1,12 +1,6 @@
 language: clojure
 
-# env:
-#   global:
-#   - DATOMIC_USERNAME="ivana_2004@mail.ru"
-#   - DATOMIC_PASSWORD="325e0e0f-d426-4768-9cbf-bd2cd42c478c"
-
 before_script:
-  # - "make ui-test"
   - "make preparings-for-ci-tests"
   - sleep 3
 
@@ -14,14 +8,6 @@ script:
 - lein test
 - lein doo chrome-headless test once
 
-
-# language: clojure
-# before_script:
-#     - "export DISPLAY=:99.0"
-#     - "sh -e /etc/init.d/xvfb start"
-#     - sleep 3
-# script: 
-#   - lein test-refresh :run-once
 
 # https://github.com/cldwalker/datomic-box
 # https://grishaev.me/en/pg-to-datomic/
