@@ -87,7 +87,12 @@ datomic-docker-start: Dockerfile_datomic
 	cat config/dev-transactor.properties | sed "s/license-key=/license-key=$(DATOMIC_LICENSE_KEY)/" > config/dev-transactor.properties
 	
 	cat config/dev-transactor.properties
-	
+
 	# docker build -f Dockerfile_datomic -t $(DOCKER_IMAGE):$(DATOMIC_VERSION) .
 	docker build -f Dockerfile_datomic --build-arg DATOMIC_USERNAME=$(DATOMIC_USERNAME) --build-arg DATOMIC_PASSWORD=$(DATOMIC_PASSWORD) --build-arg DATOMIC_VERSION=$(DATOMIC_VERSION) -t datomic-pro-starter:$(DATOMIC_VERSION) .
 	docker run -d -p 4334:4334 -p 4335:4335 -p 4336:4336 --name datomic datomic-pro-starter:$(DOCKER_TAG)
+
+
+.PHONY: ttt
+ttt: Dockerfile_ttt
+	docker build -f Dockerfile_ttt --build-arg DATOMIC_USERNAME=zazaza --build-arg DATOMIC_PASSWORD=zwzwzw --build-arg DATOMIC_VERSION=zezeze -t ttt:1 .
