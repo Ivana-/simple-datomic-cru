@@ -1,7 +1,7 @@
 language: clojure
 
 before_script:
-  - "make preparings-for-ci-tests"
+  - "make preparings-for-ci-tests-1"
   - sleep 3
 
 script:

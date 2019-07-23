@@ -15,8 +15,32 @@ DATOMIC_VERSION=0.9.5927
 # All of them seems to work fine, although lein trampoline is running the program in a non-embedded process and may cut memory usage (look at trampoline for more information about how it works).
 
 
+.PHONY: start
+start: datomic-start server-start
+
+
+.PHONY: datomic-start
+datomic-start:
+	~/pet-projects/datomic/datomic-pro-0.9.5927/bin/transactor config/dev-transactor.properties &
+
+
+.PHONY: server-start
+server-start:
+	# lein run &
+	lein run </dev/null &
+
+
+.PHONY: stop
+stop:
+	kill -9 %1 %2
+
+
+.PHONY: test
+test: backend-test ui-test
+
+
 .PHONY: backend-test
-backend-test:
+backend-test: start
 	# make up
 	# docker run -it --rm --net cleo-global-net --name wait eremec/wait
 	# clj -A:clj:dev -m "cognitect.test-runner" -d "backend/test"
@@ -26,8 +50,7 @@ backend-test:
 # make ui-test -j2
 
 .PHONY: ui-test
-# ui-test: preparings-for-ci-tests
-ui-test:
+ui-test: start
 	lein doo chrome-headless test once
 
 
@@ -53,6 +76,15 @@ datomic-ci-start:
 	./datomic-pro-$(DATOMIC_VERSION)/bin/transactor config/dev-transactor.properties &
 
 
-.PHONY: server-start
-server-start:
-	lein run &
+# for CI datomic-docker!!!
+
+.PHONY: preparings-for-ci-tests-1
+preparings-for-ci-tests: install-karma datomic-docker-start server-start
+
+
+.PHONY: datomic-docker-start
+datomic-docker-start: Dockerfile_datomic
+	cat config/dev-transactor.properties | sed "s/license-key=/license-key=$(DATOMIC_LICENSE_KEY)/" > config/dev-transactor.properties
+	# docker build -f Dockerfile_datomic -t $(DOCKER_IMAGE):$(DATOMIC_VERSION) .
+	docker build -f Dockerfile_datomic -t datomic-pro-starter:$(DATOMIC_VERSION) .
+	docker run -d -p 4334:4334 -p 4335:4335 -p 4336:4336 --name datomic datomic-pro-starter:$(DOCKER_TAG)

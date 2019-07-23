@@ -20,11 +20,14 @@
                              " Check if datomic is installed and transactor is running"))))))
 
 (def main-db-name "hello")
+(def main-db-password "123") ;; - for dockered datomic!!!
+;; (def main-db-password nil) ;; - for local plain datomic!!!
 
 ;; (def context
 (defn create-context [db-name]
-  (-> {:db-domain-host-port "datomic:dev://localhost:4334/"
+  (-> {:db-domain-host-port "datomic:dev://0.0.0.0:4334/" ;; "datomic:dev://localhost:4334/"
        :db-name db-name
+       :db-password main-db-password
        ;; title, description, applicant, performer and date
        :schema [{:db/ident :order/title
                  :db/valueType :db.type/string
@@ -35,12 +38,12 @@
                  :db/valueType :db.type/string
                  :db/cardinality :db.cardinality/one
                  :db/doc "The description of the order"}
-                
+
                 {:db/ident :order/applicant
                  :db/valueType :db.type/string
                  :db/cardinality :db.cardinality/one
                  :db/doc "The applicant of the order"}
-                
+
                 {:db/ident :order/performer
                  :db/valueType :db.type/string
                  :db/cardinality :db.cardinality/one
@@ -51,10 +54,16 @@
                  :db/cardinality :db.cardinality/one
                  :db/doc "The date of the order"}]}
 
-      (#(assoc % :db-uri (str (:db-domain-host-port %) (:db-name %))))
+      (#(assoc % :db-uri (str (:db-domain-host-port %)
+                              (:db-name %)
+                              (when-not (str/blank? (:db-password %))
+                                (str "?password=" (:db-password %))))))
 
       (try-chain (fn [m] {:database-names
-                          (d/get-database-names (str (:db-domain-host-port m) "*"))})
+                          (d/get-database-names (str (:db-domain-host-port m)
+                                                     "*"
+                                                     (when-not (str/blank? (:db-password m))
+                                                       (str "?password=" (:db-password m)))))})
                  "get-database-names error")
 
       (try-chain (fn [m]
@@ -242,35 +251,39 @@
 
 (comment
 
-  ;; testings
-  (d/get-database-names "datomic:dev://0.0.0.0:4334/*")
-  
-  (d/get-database-names "datomic:dev://localhost:4334/*")
+  (defn db-uri [db-name] (str "datomic:dev://0.0.0.0:4334/" db-name
+                              (when-not (str/blank? main-db-password)
+                                (str "?password=" main-db-password))))
+
+  ;; datomic:dev://my-host:4334/my-db?password=my-secret
+
+  (d/get-database-names (db-uri "*"))
 
   (:db-name @context)
+  (identity @context)
 
   (do
-    (d/delete-database "datomic:dev://localhost:4334/test")
+    (d/delete-database (db-uri "test"))
     (reset! context (create-context "test")))
 
   (do
-    (d/delete-database "datomic:dev://localhost:4334/test")
+    (d/delete-database (db-uri "test"))
     (reset! context (create-context main-db-name)))
 
 
-  (d/delete-database (str "datomic:dev://localhost:4334/" main-db-name)) ;; !!!!!!!!!
-  
-  ;; (d/create-database (:db-uri m))
-  ;; (d/connect (:db-uri @context)) ;; "datomic:dev://localhost:4334/hello"
-  
-  ;; (d/delete-database (:db-uri @context))
-  
+  (d/delete-database (db-uri main-db-name)) ;; !!!!!!!!!
 
+  ;; (d/create-database (:db-uri m))
+  ;; (d/connect (:db-uri @context))
+
+  ;; (d/delete-database (:db-uri @context))
+
+  (def conn (d/connect (db-uri main-db-name)))
 
   (def conn (:conn @context))
 
   ; @(d/transact conn [{:db/doc "Hello world"}])
-  
+
   (def db (d/db conn))
 
   (d/get-database-names (str (:db-domain-host-port @context) "*"))
@@ -294,10 +307,10 @@
 
   (seq (d/pull db '[*] 17592186045440)) ;; ([:db/id 17592186045440] [:order/title "t2"] [:order/description "d2"] [:order/applicant "a2"] [:order/performer "p2"] [:order/date #inst "2019-07-05T21:00:00.000-00:00"])
   (seq (d/pull db '[*] 17592186045449)) ;; ([:db/id 17592186045449])
-  
+
   (d/entity db 17592186045440) ;; #:db{:id 17592186045440}
   (d/entity db 17592186045449) ;; #:db{:id 17592186045449}
-  
+
   (def hdb (d/history db))
   (seq (d/pull hdb '[*] 17592186045440))
   (->> 17592186045440
@@ -330,7 +343,7 @@
   ;   [17592186045440 :order/description "d2" 13194139534339 false #inst "2019-07-06T22:42:31.873-00:00"] 
   ;   [17592186045440 :order/date        #inst "2019-07-05T21:00:00.000-00:00" 13194139534335 true #inst "2019-07-05T16:43:16.370-00:00"] 
   ;   [17592186045440 :order/description "d2" 13194139534335 true  #inst "2019-07-05T16:43:16.370-00:00"]}
-  
+
 
   (defn entity-history
     "Takes an entity and shows all the transactions that touched this entity.
@@ -399,10 +412,10 @@
          ;; [(fulltext $ :order/description ?search) [[?e ?title ?year ?genre]]]
         ;  [(fulltext $ :movie/title ?title) [[?title]] ;; [[?e ?title ?year ?genre]]
         ;   ]
-         
+
          ;; [(.startsWith ?title "Com")] ;; works!
          ;; [(.contains ?title "man")] ;; works!
-         
+
          [(str ?title ?genre) ?zzz]
          [(.contains ?zzz "ver")] ;; works!
          ;;
@@ -425,7 +438,7 @@
   ;    [(> ?birth-date ?toAge)]
   ;    [?user :gender ?gender]]}
   ;  :args [<db-object> [:location/id 42] 1504210734 1504280734 20 30 "m"]}
-  
+
   (d/q (filterv
         identity
         [:find '?e
@@ -442,7 +455,7 @@
 
         ;  '[?id :id/name ?e]
         ;  '[?date :date/name ?date]
-         
+
         ;; ['?e :order/date y]
          [(list '<= '?date (parse-date "2019-07-08"))]
          ;;
@@ -496,7 +509,7 @@
   (seq? qr) ;; false
   (coll? qr) ;; false
   (sequential? qr) ;; false
-  
+
   (seqable? qr) ;; true
   (map identity qr)
 
