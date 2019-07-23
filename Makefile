@@ -79,7 +79,7 @@ datomic-ci-start:
 # for CI datomic-docker!!!
 
 .PHONY: preparings-for-ci-tests-1
-preparings-for-ci-tests: install-karma datomic-docker-start server-start
+preparings-for-ci-tests-1: install-karma datomic-docker-start server-start
 
 
 .PHONY: datomic-docker-start
