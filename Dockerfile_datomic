@@ -18,7 +18,7 @@ RUN apk add --no-cache unzip curl
 #   && unzip /tmp/datomic.zip -d /opt \
 #   && rm -f /tmp/datomic.zip
 
-RUN curl -u $(DATOMIC_USERNAME):$(DATOMIC_PASSWORD) -SL https://my.datomic.com/repo/com/datomic/datomic-pro/$DATOMIC_VERSION/datomic-pro-$DATOMIC_VERSION.zip -o /tmp/datomic.zip
+RUN curl -u $DATOMIC_USERNAME:$DATOMIC_PASSWORD -SL https://my.datomic.com/repo/com/datomic/datomic-pro/$DATOMIC_VERSION/datomic-pro-$DATOMIC_VERSION.zip -o /tmp/datomic.zip
 RUN unzip /tmp/datomic.zip -d /opt
 RUN rm -f /tmp/datomic.zip
 
