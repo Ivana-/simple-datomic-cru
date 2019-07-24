@@ -91,10 +91,11 @@ datomic-docker-start: Dockerfile_datomic
 	# docker build -f Dockerfile_datomic -t $(DOCKER_IMAGE):$(DATOMIC_VERSION) .
 	docker build -f Dockerfile_datomic --build-arg DATOMIC_USERNAME=$(DATOMIC_USERNAME) --build-arg DATOMIC_PASSWORD=$(DATOMIC_PASSWORD) --build-arg DATOMIC_VERSION=$(DATOMIC_VERSION) -t datomic-pro-starter:$(DATOMIC_VERSION) .
 	docker run -d -p 4334:4334 -p 4335:4335 -p 4336:4336 --name datomic datomic-pro-starter:$(DATOMIC_VERSION)
+	sleep 15
 	docker ps -a
 
 # .PHONY: ttt
 # ttt: Dockerfile_ttt
 # 	# HOSTIP=`ip -4 addr show scope global dev docker0 | grep inet | awk '{print \$2}' | cut -d / -f 1`
-# 	HOSTIP=`ip -4 addr show scope global dev docker0 | grep inet | awk '{print \$(2)}' | cut -d / -f 1`
+# 	HOSTIP="ip -4 addr show scope global dev docker0 | grep inet | awk '{print \$2}' | cut -d / -f 1"
 # 	echo HOSTIP: $(HOSTIP)
