@@ -1,5 +1,8 @@
 language: clojure
 
+services:
+  - docker
+
 before_script:
   - "make preparings-for-ci-tests-1"
   - sleep 3
