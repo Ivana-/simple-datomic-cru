@@ -5,7 +5,7 @@ services:
 
 before_script:
   - "make preparings-for-ci-tests-1"
-  - sleep 3
+  - sleep 10
 
 script:
 - lein test
