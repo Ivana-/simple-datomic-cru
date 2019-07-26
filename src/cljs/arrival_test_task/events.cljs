@@ -1,10 +1,11 @@
 (ns arrival-test-task.events
   (:require
-   [re-frame.core :as rf]))
+   [re-frame.core :as rf]
+   [arrival-test-task.config :as config]))
 
 (rf/reg-event-db
  ::initialize-db
- (fn [_ _] {}))
+ (fn [_ _] {:config {:backend-url config/backend-url}}))
 
 (rf/reg-event-db
  :set-values-by-paths

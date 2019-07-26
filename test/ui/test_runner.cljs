@@ -39,7 +39,7 @@
 ;; (doo-tests 'ui.order-model-test 'ui.order-model-test)
 (doo-tests 'ui.order-model-test)
 
-(prn "zazaza")
+;; (prn "config/test?" config/test?)
 
 ; (when (exists? js/phantom)
 ;   (js/phantom.exit))
@@ -48,6 +48,8 @@
   (enable-console-print!)
   
   (run-tests 'ui.order-model-test 'ui.order-model-test)
+  
+  ;; config/test?
 
   ;;
   )

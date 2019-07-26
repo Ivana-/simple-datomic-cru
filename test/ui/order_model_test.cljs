@@ -6,6 +6,7 @@
    [re-frame.core :as rf]
    [ui.macroses :refer-macros [<<-]]
    [ui.utils :as utils]
+   [arrival-test-task.config :as config]
    [clojure.string :as str]
    [arrival-test-task.order-grid :as sut]
    [arrival-test-task.events]))
@@ -24,11 +25,14 @@
   )
 
 
-(use-fixtures :once
-  {:before #(async done
-                   (prn "Before..." %)
-                   (done))
-   :after #(do (prn "After..." %))})
+; (use-fixtures :once
+;   {:before #(async done
+;                    (prn "Before..." %)
+;                    (done))
+;    :after #(do
+;              (prn "After..." %)
+;              ;; (rf/dispatch-sync [:set-values-by-paths {:config {:backend-url "zazaza"}}])
+;              )})
 
 
 (defn parse-date [s]
@@ -51,24 +55,32 @@
          order-template-1 (assoc order-template
                                  :order/title "Second title"
                                  :order/date "2019-07-16")
-         m (rf/subscribe [:get-values-by-paths {:db-name :db-name
+         m (rf/subscribe [:get-values-by-paths {:config :config
+                                                :db-name :db-name
                                                 :order :order
                                                 :order-list :order-list
                                                 :order-history :order-history
                                                 :fetching? :fetching?
                                                 :error :error}])]
+     ;; switch to test url
+     (rf/dispatch-sync [:set-values-by-paths {:config {:backend-url config/test-backend-url}}])
+     (is (= (-> @m :config :backend-url) config/test-backend-url))
 
-     (rf/dispatch-sync [:set-values-by-paths {:order order-template
-                                              :order-history nil
-                                              :order-list nil}])
-     (is (= (-> @m :order) order-template))
-
-     (rf/dispatch [::utils/switch-database "test"]) ;; switch to test database
+     (rf/dispatch [::utils/clear-test-database])
 
      (<<-
 
       (t/wait-for [:fetch-finished]
                   (is (= (-> @m :db-name) {:db-name "test"}))
+
+                  (when-not (= (-> @m :db-name) {:db-name "test"})
+                      (throw (js/Error. "Did not switch to test database!")))
+
+                  (rf/dispatch-sync [:set-values-by-paths {:order order-template
+                                                           :order-history nil
+                                                           :order-list nil}])
+                  (is (= (-> @m :order) order-template))
+
                   (rf/dispatch [::sut/save-order]))
 
       (t/wait-for [:fetch-finished]
@@ -150,10 +162,10 @@
                   ;; (prn (:error @m))                  
                   (is (-> @m :error boolean))
                   (is (= (:error @m) "Unparseable date: \"zazaza\""))
-                  (rf/dispatch [::utils/switch-database]))
 
-      (t/wait-for [:fetch-finished]
-                  (is (= (-> @m :db-name) {:db-name "hello"})))
+                  ; (rf/dispatch-sync [:set-values-by-paths {:config {:backend-url config/backend-url}}])
+                  ; (is (= (-> @m :config :backend-url) config/backend-url))
+                  )
 
       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       ))))

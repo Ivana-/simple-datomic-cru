@@ -25,9 +25,6 @@
   ; (identity @m)
 
   ; (is (= 2 (count (:items @m))))
-  
-  ; model/backend-url
-
 
   ; (reset! re-frame.db/app-db {;;
   ;                             :date-from "sdrgsdfgsdfgsd"

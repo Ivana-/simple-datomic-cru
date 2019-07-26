@@ -8,9 +8,7 @@
                  [compojure "1.6.1"]
                  [yogthos/config "1.1.2"]
                  [ring "1.7.1"]
-                 ;;
-                 ;; [cheshire "5.8.1"]
-                 ;; [ring-middleware-format "0.7.4"]
+
                  ;; [com.datomic/client-pro "0.8.28"]
                  [com.datomic/datomic-pro "0.9.5927" :exclusions [com.google.guava/guava]]
                  [clj-commons/secretary "1.2.4"]
@@ -29,6 +27,7 @@
 
   :plugins [[lein-cljsbuild "1.1.7"]
             [lein-garden "0.2.8"]
+            [lein-environ "1.1.0"]
             [lein-doo "0.1.11"]]
 
   :min-lein-version "2.5.3"
@@ -55,7 +54,7 @@
 
                   ; :source-paths ["test"]
                   ; :test-path "test"
-
+                   
                    :extra-paths ["test"] ;; ["ui/srcs" "ui/test" "backend/test"]
                   ;  :extra-deps {com.cognitect/test-runner
                   ;               {:git/url "https://github.com/cognitect-labs/test-runner.git"
@@ -63,11 +62,12 @@
                                 ; faker {:mvn/version "0.2.2"}
                                 ; re-frame {:mvn/version "0.10.5"}
                                 ; org.clojure/tools.cli {:mvn/version "0.4.1"}
-
+                   
                                 ; nrepl/nrepl {:mvn/version "0.6.0"}
                                 ; refactor-nrepl {:mvn/version "2.4.0"}
                                 ; cider/cider-nrepl {:mvn/version "0.22.0-beta4"}
                   ;              }
+                   :env {:start-test-server? true}
                    ;;
                    }
              :prod {}
@@ -78,6 +78,8 @@
                        :uberjar-name "arrival_test_task.jar"
                        :prep-tasks   ["compile" ["cljsbuild" "once" "min"]["garden" "once"]]}}
 
+  ;; https://clojureverse.org/t/how-to-deal-with-development-code-in-clojurescript/613/2
+  
   :cljsbuild {:builds [{:id           "dev"
                         :source-paths ["src/cljs"]
                         :figwheel     {:on-jsload "arrival_test_task.core/mount-root"}
@@ -101,11 +103,17 @@
 
                        {:id           "test"
                         :source-paths ["src/cljs" "test"] ;; ["src/cljs" "test/ui"];; ["src" "test"]
-                        :compiler     {:main          ui.test-runner ;; runners.doo
-                                       ;; karma - browsers
-                                       :optimizations :whitespace
-                                       :output-dir    "resources/public/js/compiled/test"
-                                       :output-to     "resources/public/js/compiled/test.js"}}
+                        :compiler     {;; :preloads             [arrival-test-task.config]
+                                       :main                 ui.test-runner ;; runners.doo
+                                       :output-dir           "resources/public/js/compiled/test"
+                                       :output-to            "resources/public/js/compiled/test.js"
+                                       ;; :closure-defines currently does not have any effect
+                                       ;; with :optimization :whitespace.
+                                       ;; lein figwheel test - Error
+                                       ;; the build :optimizations key is set to something other than :none
+                                       :optimizations        :whitespace ;; :none ;; :advanced ;; :none ;; :whitespace
+                                       ;; :closure-defines      {arrival-test-task.config/test? true}
+                                       }}
 
                        {:id           "devcards-test"
                         :source-paths ["src/cljs" "test"] ;; ["src" "test"]

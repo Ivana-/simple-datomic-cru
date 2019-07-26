@@ -6,5 +6,8 @@ out
 /env
 /*.md-old
 /.lein-repl-history
+/.lein-env
+/.lein-failures
+/.rebel_readline_history
 /.nrepl-port
 /node-modules

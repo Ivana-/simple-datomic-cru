@@ -16,12 +16,32 @@ DATOMIC_VERSION=0.9.5927
 
 
 .PHONY: start
-start: datomic-start server-start
+# start: datomic-start server-start
+start:
+	docker start datomic
+	# clj -A:clj:dev -m "arrival-test-task.server"
+	lein run
+
+# start:
+# 	make up
+# 	docker run -it --rm --net cleo-global-net --name wait eremec/wait
+# 	clj -A:clj:dev -m "start"
 
 
-.PHONY: datomic-start
-datomic-start:
-	~/pet-projects/datomic/datomic-pro-0.9.5927/bin/transactor config/dev-transactor.properties &
+
+# .PHONY: datomic-start
+# datomic-start:
+# 	~/pet-projects/datomic/datomic-pro-0.9.5927/bin/transactor config/dev-transactor.properties &
+
+
+
+# $ lein with-profile dev run
+# Performing task 'run' with profile(s): 'dev'
+# active profile :dev
+
+# $ lein with-profile prod run
+# Performing task 'run' with profile(s): 'prod'
+# active profile :prod
 
 
 .PHONY: server-start
@@ -32,7 +52,8 @@ server-start:
 
 .PHONY: stop
 stop:
-	kill -9 %1 %2
+	# kill -9 %1 %2
+
 
 
 .PHONY: test
@@ -53,6 +74,8 @@ backend-test: start
 ui-test: start
 	lein doo chrome-headless test once
 
+
+###################################################################################################################################
 
 # for CI only!!!
 
@@ -85,17 +108,7 @@ preparings-for-ci-tests-1: install-karma datomic-docker-start server-start
 .PHONY: datomic-docker-start
 datomic-docker-start: Dockerfile_datomic
 	cat config/dev-transactor.properties | sed "s/license-key=/license-key=$(DATOMIC_LICENSE_KEY)/" > config/dev-transactor.properties
-	
-	# cat config/dev-transactor.properties
-
-	# docker build -f Dockerfile_datomic -t $(DOCKER_IMAGE):$(DATOMIC_VERSION) .
 	docker build -f Dockerfile_datomic --build-arg DATOMIC_USERNAME=$(DATOMIC_USERNAME) --build-arg DATOMIC_PASSWORD=$(DATOMIC_PASSWORD) --build-arg DATOMIC_VERSION=$(DATOMIC_VERSION) -t datomic-pro-starter:$(DATOMIC_VERSION) .
 	docker run -d -p 4334:4334 -p 4335:4335 -p 4336:4336 --name datomic datomic-pro-starter:$(DATOMIC_VERSION)
 	sleep 15
 	docker ps -a
-
-# .PHONY: ttt
-# ttt: Dockerfile_ttt
-# 	# HOSTIP=`ip -4 addr show scope global dev docker0 | grep inet | awk '{print \$2}' | cut -d / -f 1`
-# 	HOSTIP="ip -4 addr show scope global dev docker0 | grep inet | awk '{print \$2}' | cut -d / -f 1"
-# 	echo HOSTIP: $(HOSTIP)

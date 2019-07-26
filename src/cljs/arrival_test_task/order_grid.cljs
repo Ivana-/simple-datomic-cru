@@ -289,8 +289,6 @@
         )]]]))
 
 
-(def backend-url "http://localhost:3000")
-
 (defn non-blank-vals [m]
   (reduce (fn [acc [k v]] (if (str/blank? v) acc (assoc acc k v))) nil m))
 
@@ -321,7 +319,7 @@
  (fn [{db :db} _]
    (when-not (:fetching? db)
      {:fetch-promise
-      (-> (fetch/fetch-promise {:uri (str backend-url "/order")
+      (-> (fetch/fetch-promise {:uri (str (-> db :config :backend-url) "/order")
                                 :params (non-blank-vals
                                          (select-keys db [:date-from
                                                           :date-to
@@ -333,7 +331,7 @@
  (fn [{db :db} _]
    (when-not (:fetching? db)
      {:fetch-promise
-      (-> (fetch/fetch-promise {:uri (str backend-url "/order-save")
+      (-> (fetch/fetch-promise {:uri (str (-> db :config :backend-url) "/order-save")
                                 :method "POST"
                                 :body (:order db)})
           (.then (fn [order]
@@ -341,7 +339,7 @@
                     [order
                      (let [id (get-in order [:data :db/id])]
                        (when (get-in db [:order-history id])
-                         (fetch/fetch-promise {:uri (str backend-url "/order-history/" id)})))])))
+                         (fetch/fetch-promise {:uri (str (-> db :config :backend-url) "/order-history/" id)})))])))
           (.then (fn [[order history]]
                    (let [id (get-in order [:data :db/id])]
                      (rf/dispatch
@@ -359,7 +357,7 @@
  (fn [{db :db} [_ id]]
    (when-not (:fetching? db)
      {:fetch-promise
-      (-> (fetch/fetch-promise {:uri (str backend-url "/order/" id)})
+      (-> (fetch/fetch-promise {:uri (str (-> db :config :backend-url) "/order/" id)})
           (.then (fn [x] (rf/dispatch
                           [:set-values-by-paths
                            {:order (update (:data x) :order/date iso-utc-2-iso-local)}]))))})))
@@ -371,7 +369,7 @@
      {:db (update db :order-history dissoc id)}
      (when-not (:fetching? db)
        {:fetch-promise
-        (-> (fetch/fetch-promise {:uri (str backend-url "/order-history/" id)})
+        (-> (fetch/fetch-promise {:uri (str (-> db :config :backend-url) "/order-history/" id)})
             (.then (fn [x] (rf/dispatch [:set-values-by-paths
                                          {[:order-history id] (:data x)}]))))}))))
 
@@ -380,7 +378,7 @@
 ;  (fn [{db :db} _]
 ;    (when-not (:fetching? db)
 ;        {:fetch-promise
-;         (-> (fetch/fetch-promise {:uri (str backend-url "/test")})
+;         (-> (fetch/fetch-promise {:uri (str (-> db :config :backend-url) "/test")})
 ;             (.then (fn [x] (rf/dispatch [:set-values-by-paths {:test (:data x)}]))))})))
 
 
