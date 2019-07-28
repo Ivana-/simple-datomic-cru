@@ -12,45 +12,41 @@ Edit form view
 
 ![alt text](https://user-images.githubusercontent.com/10473034/61061423-e6c4ea80-a404-11e9-911b-061c12da9b82.png "Edit order form")
 
-## Install Datomic
+## Join Datomic registration (if not yet)
 
 <https://www.datomic.com/get-datomic.html> (Starter - free)
 
-The exact Datomic version, used in this project, is `pro-0.9.5927`
+Current Datomic version, used in this project, is `0.9.5930` but you can change it in both `project.clj` and `Makefile`
 
-It can be loaded from <https://my.datomic.com/downloads/pro> choose `datomic-pro-0.9.5927.zip`
+## Installation
 
-You can install another Datomic-pro version, but in this case set appropriate dependency in `project.clj`
+### Set environment variables
+
+Create file `.env_secret` with following entry:
+
+```
+export DATOMIC_USERNAME=<Technical Contact from https://my.datomic.com/account>
+export DATOMIC_PASSWORD=<Download Key from https://my.datomic.com/account>
+export DATOMIC_LICENSE_KEY=<Your personal license key, sended you by email>
+export DATOMIC_STORAGE_ADMIN_PASSWORD=<Storage admin password - any non-empty string without whitespaces>
+export DATOMIC_STORAGE_DATOMIC_PASSWORD=<Storage user password - any non-empty string without whitespaces>
+```
+
+### And run install script
+
+```
+make install
+```
 
 ## Development Mode
 
-### Start Datomic transactor:
-
-Docs <https://docs.datomic.com/on-prem/dev-setup.html#run-dev-transactor>
-
-```
-bin/transactor <your-config-file>
-```
-
-By default, it starts at `datomic:dev://localhost:4334/`
-
 ### Run server:
 
-Set environment variables (getting from your Datomic registration - https://my.datomic.com/account : Technical Contact & Download Key)
-
 ```
-DATOMIC_USERNAME
-DATOMIC_PASSWORD
+make start
 ```
 
-Start REPL
-
-```
-lein repl
-```
-
-or use any built-in REPL in your editor/IDE.
-Then evaluate `(-main)` from `server.clj`. Server will run on port 3000 by default.
+or open any built-in REPL in your editor/IDE and evaluate `(-main)` from `core.clj`. Server will run on port 3000 by default.
 
 ### Run client:
 
@@ -62,3 +58,17 @@ lein figwheel dev
 Figwheel will automatically push cljs changes to the browser.
 
 Wait a bit, then browse to [http://localhost:3449](http://localhost:3449).
+
+## Testing
+
+### Backend tests:
+
+```
+lein test
+```
+
+### Frontend tests:
+
+```
+lein doo chrome-headless test once
+```

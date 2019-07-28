@@ -10,7 +10,7 @@
                  [ring "1.7.1"]
 
                  ;; [com.datomic/client-pro "0.8.28"]
-                 [com.datomic/datomic-pro "0.9.5927" :exclusions [com.google.guava/guava]]
+                 [com.datomic/datomic-pro "0.9.5930" :exclusions [com.google.guava/guava]]
                  [clj-commons/secretary "1.2.4"]
 
                  [day8.re-frame/test "0.1.5"]
@@ -23,7 +23,7 @@
                                    :username ~(System/getenv "DATOMIC_USERNAME")
                                    :password ~(System/getenv "DATOMIC_PASSWORD")}}
 
-  :main arrival-test-task.server
+  :main arrival-test-task.core
 
   :plugins [[lein-cljsbuild "1.1.7"]
             [lein-garden "0.2.8"]
@@ -73,8 +73,8 @@
              :prod {}
              :uberjar {:source-paths ["env/prod/clj"]
                        :omit-source  true
-                       :main         arrival-test-task.server
-                       :aot          [arrival-test-task.server]
+                       :main         arrival-test-task.core
+                       :aot          [arrival-test-task.core]
                        :uberjar-name "arrival_test_task.jar"
                        :prep-tasks   ["compile" ["cljsbuild" "once" "min"]["garden" "once"]]}}
 
@@ -115,7 +115,7 @@
                                        ;; :closure-defines      {arrival-test-task.config/test? true}
                                        }}
 
-                       {:id           "devcards-test"
+                       #_{:id           "devcards-test"
                         :source-paths ["src/cljs" "test"] ;; ["src" "test"]
                         :figwheel     {:devcards true}
                         :compiler     {:main                 dev-cards.test-runner

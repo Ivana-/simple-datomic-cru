@@ -1,5 +1,6 @@
 (ns arrival-test-task.datomic
   (:require [datomic.api :as d]
+            [arrival-test-task.config :refer [CONFIG]]
             [clojure.string :as str]))
 
 ;; peer library
@@ -7,8 +8,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; start database connections, schema loading, etc.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defonce context (atom nil))
 
 (defn try-chain [m f err-str]
   (if (:error m)
@@ -19,16 +18,14 @@
         (assoc m :error (str (.getMessage e) " " err-str
                              " Check if datomic is installed and transactor is running"))))))
 
-(def main-db-name "hello")
+(def main-db-name "main")
 (def test-db-name "test")
 
-(def main-db-password "123") ;; - for dockered datomic!!!
-;; (def main-db-password nil) ;; - for local plain datomic!!!
 
 (defn create-context [db-name]
   (-> {:db-domain-host-port "datomic:dev://0.0.0.0:4334/" ;; "datomic:dev://localhost:4334/"
        :db-name db-name
-       :db-password main-db-password
+       :db-password (:datomic-storage-admin-password CONFIG) ;; - for dockered datomic!!! nil - for local plain
        ;; title, description, applicant, performer and date
        :schema [{:db/ident :order/title
                  :db/valueType :db.type/string
@@ -90,27 +87,20 @@
       ;;
       ))
 
-(def context {:main (create-context main-db-name)
-              :test (atom nil)})
+(def main-context nil) ;; (create-context main-db-name))
+(def test-context nil)
+
+(defn start-datomic! [] (alter-var-root (var main-context) (fn [cnt] (create-context main-db-name))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; queries/transactions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-(defn get-connection [{test-db? :test-db?}]
-  (if test-db?
-    (:conn @(:test context))
-    (get-in context [:main :conn])))
-
-(defn get-error [{test-db? :test-db?}]
-  (if test-db?
-    (:error @(:test context))
-    (get-in context [:main :error])))
-
+(defn get-context [{test-db? :test-db?}] (if test-db? test-context main-context))
 
 (defmacro try-wraps [req body]
-  `(if-let [context-error# (get-error ~req)]
+  `(if-let [context-error# (-> ~req get-context :error)]
     {:status 400
      :body {:message context-error#}}
     (try
@@ -131,13 +121,13 @@
   (try-wraps
    req
    (if test-db?
-     (let [ps @(:test context)]
-     ;; (when (:db-uri ps) (d/delete-database (:db-uri ps)))
+     (do
+       ;; (when (:db-uri ps) (d/delete-database (:db-uri test-context)))
        (d/delete-database (str "datomic:dev://0.0.0.0:4334/" test-db-name
-                               (when-not (str/blank? main-db-password)
-                                 (str "?password=" main-db-password))))
-
-       (reset! (:test context) (create-context test-db-name))
+                               (let [password (:datomic-storage-admin-password CONFIG)]
+                                 (when-not (str/blank? password)
+                                   (str "?password=" password)))))
+       (alter-var-root (var test-context) (fn [cnt] (create-context test-db-name)))
        {:db-name test-db-name})
      {:message "Can not delete main database!"})))
 
@@ -149,7 +139,7 @@
   ;; (Thread/sleep 3000)
   (try-wraps
    req
-   (let [db (d/db (get-connection req))]
+   (let [db (d/db (-> req get-context :conn))]
      (->>
       (d/q (cond-> '[:find ?e ?title ?description ?applicant ?performer ?date
                      :where
@@ -174,12 +164,12 @@
 (defn order-by-id [{{id :id} :params :as req}]
   (try-wraps
    req
-   (d/pull (d/db (get-connection req)) '[*] (read-string id))))
+   (d/pull (d/db (-> req get-context :conn)) '[*] (read-string id))))
 
 (defn order-history-by-id [{{id :id} :params :as req}]
   (try-wraps
    req
-   (let [db (d/db (get-connection req))
+   (let [db (d/db (-> req get-context :conn))
          hdb (d/history db)]
      (->> id
           read-string
@@ -199,12 +189,12 @@
 (defn order-save [{body :body :as req}]
   (try-wraps
    req
-   (let [t @(d/transact (get-connection req) [(update body :order/date parse-date)])
+   (let [t @(d/transact (-> req get-context :conn) [(update body :order/date parse-date)])
          id (or (:db/id body) ;; update existing id
                 (-> (:tempids t) vals first) ;; created id on create resource
                 )]
      ;; (order-by-id id)
-     (d/pull (d/db (get-connection req)) '[*] id))))
+     (d/pull (d/db (-> req get-context :conn)) '[*] id))))
 
 
 ; (prn "=============== transaction " t)
@@ -273,39 +263,37 @@
 (comment
 
   (defn db-uri [db-name] (str "datomic:dev://0.0.0.0:4334/" db-name
-                              (when-not (str/blank? main-db-password)
-                                (str "?password=" main-db-password))))
+                              (let [password (:datomic-storage-admin-password CONFIG)]
+                                (when-not (str/blank? password)
+                                  (str "?password=" password)))))
 
   ;; datomic:dev://my-host:4334/my-db?password=my-secret
-  
+
   (d/get-database-names (db-uri "*"))
 
-  (identity context)
+  main-context
+  test-context
 
   (d/delete-database (db-uri test-db-name))
-  
+
   (d/delete-database (db-uri main-db-name))
 
   (do
     (d/delete-database (db-uri test-db-name))
-    (reset! context (create-context "test")))
-
-  (do
-    (d/delete-database (db-uri test-db-name))
-    (reset! context (create-context main-db-name)))
+    (alter-var-root (var test-context) (fn [cnt] (create-context test-db-name))))
 
 
   (d/delete-database (db-uri main-db-name)) ;; !!!!!!!!!
-  
+
   (def conn (d/connect (db-uri main-db-name)))
 
-  (def conn (-> context :main :conn))
+  (def conn (:conn main-context))
 
   ; @(d/transact conn [{:db/doc "Hello world"}])
-  
+
   (def db (d/db conn))
 
-  (d/get-database-names (str (:db-domain-host-port (:main context)) "*"))
+  (d/get-database-names (str (:db-domain-host-port main-context) "*"))
 
 
   (def x1 (java.text.SimpleDateFormat. "yyyy-MM-dd"))
@@ -326,10 +314,10 @@
 
   (seq (d/pull db '[*] 17592186045440)) ;; ([:db/id 17592186045440] [:order/title "t2"] [:order/description "d2"] [:order/applicant "a2"] [:order/performer "p2"] [:order/date #inst "2019-07-05T21:00:00.000-00:00"])
   (seq (d/pull db '[*] 17592186045449)) ;; ([:db/id 17592186045449])
-  
+
   (d/entity db 17592186045440) ;; #:db{:id 17592186045440}
   (d/entity db 17592186045449) ;; #:db{:id 17592186045449}
-  
+
   (def hdb (d/history db))
   (seq (d/pull hdb '[*] 17592186045440))
   (->> 17592186045440
@@ -362,7 +350,7 @@
   ;   [17592186045440 :order/description "d2" 13194139534339 false #inst "2019-07-06T22:42:31.873-00:00"] 
   ;   [17592186045440 :order/date        #inst "2019-07-05T21:00:00.000-00:00" 13194139534335 true #inst "2019-07-05T16:43:16.370-00:00"] 
   ;   [17592186045440 :order/description "d2" 13194139534335 true  #inst "2019-07-05T16:43:16.370-00:00"]}
-  
+
 
   (defn entity-history
     "Takes an entity and shows all the transactions that touched this entity.
@@ -431,10 +419,10 @@
          ;; [(fulltext $ :order/description ?search) [[?e ?title ?year ?genre]]]
         ;  [(fulltext $ :movie/title ?title) [[?title]] ;; [[?e ?title ?year ?genre]]
         ;   ]
-         
+
          ;; [(.startsWith ?title "Com")] ;; works!
          ;; [(.contains ?title "man")] ;; works!
-         
+
          [(str ?title ?genre) ?zzz]
          [(.contains ?zzz "ver")] ;; works!
          ;;
@@ -457,7 +445,7 @@
   ;    [(> ?birth-date ?toAge)]
   ;    [?user :gender ?gender]]}
   ;  :args [<db-object> [:location/id 42] 1504210734 1504280734 20 30 "m"]}
-  
+
   (d/q (filterv
         identity
         [:find '?e
@@ -474,7 +462,7 @@
 
         ;  '[?id :id/name ?e]
         ;  '[?date :date/name ?date]
-         
+
         ;; ['?e :order/date y]
          [(list '<= '?date (parse-date "2019-07-08"))]
          ;;
@@ -528,7 +516,7 @@
   (seq? qr) ;; false
   (coll? qr) ;; false
   (sequential? qr) ;; false
-  
+
   (seqable? qr) ;; true
   (map identity qr)
 

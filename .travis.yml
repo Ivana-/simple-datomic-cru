@@ -4,7 +4,10 @@ services:
   - docker
 
 before_script:
-  - "make preparings-for-ci-tests-1"
+  - make install
+  - sleep 15
+  - docker ps -a
+  - lein run </dev/null &
   - sleep 10
 
 script:

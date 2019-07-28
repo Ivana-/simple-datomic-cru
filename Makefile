@@ -1,5 +1,7 @@
-DATOMIC_VERSION=0.9.5927
 
+-include .env_secret # load secrets if file exists
+
+DATOMIC_VERSION=0.9.5930
 .EXPORT_ALL_VARIABLES:
 
 
@@ -16,10 +18,9 @@ DATOMIC_VERSION=0.9.5927
 
 
 .PHONY: start
-# start: datomic-start server-start
 start:
-	docker start datomic
-	# clj -A:clj:dev -m "arrival-test-task.server"
+	test -n "$(DATOMIC_VERSION)"  # $$DATOMIC_VERSION
+	docker start datomic-$(DATOMIC_VERSION)
 	lein run
 
 # start:
@@ -28,11 +29,9 @@ start:
 # 	clj -A:clj:dev -m "start"
 
 
-
 # .PHONY: datomic-start
 # datomic-start:
 # 	~/pet-projects/datomic/datomic-pro-0.9.5927/bin/transactor config/dev-transactor.properties &
-
 
 
 # $ lein with-profile dev run
@@ -43,11 +42,6 @@ start:
 # Performing task 'run' with profile(s): 'prod'
 # active profile :prod
 
-
-.PHONY: server-start
-server-start:
-	# lein run &
-	lein run </dev/null &
 
 
 .PHONY: stop
@@ -74,41 +68,46 @@ backend-test: start
 ui-test: start
 	lein doo chrome-headless test once
 
+# .PHONY: zzz
+# zzz:
+# 	lein doo chrome-headless test once
+
 
 ###################################################################################################################################
 
-# for CI only!!!
 
-.PHONY: preparings-for-ci-tests
-preparings-for-ci-tests: install-karma datomic-ci-start server-start
+.PHONY: install
+install: _install-karma _install-datomic-docker
 
 
-.PHONY: install-karma
-install-karma:
+.PHONY: _install-karma
+_install-karma:
 	npm install -g karma-cli
 	npm install karma karma-cljs-test karma-chrome-launcher --save-dev
 
 
-.PHONY: datomic-ci-start
-datomic-ci-start:
-	curl -u $(DATOMIC_USERNAME):$(DATOMIC_PASSWORD) -SL https://my.datomic.com/repo/com/datomic/datomic-pro/$(DATOMIC_VERSION)/datomic-pro-$(DATOMIC_VERSION).zip -o datomic.zip
-	unzip datomic.zip
-	# rm -f datomic.zip
-	# cat test/datomic_template/dev-transactor-template.properties | sed "s/license-key=/license-key=$(DATOMIC_LICENSE_KEY)/" > datomic-pro-$(DATOMIC_VERSION)/config/dev-transactor.properties
-	cat datomic-pro-$(DATOMIC_VERSION)/config/samples/dev-transactor-template.properties | sed "s/license-key=/license-key=$(DATOMIC_LICENSE_KEY)/" > datomic-pro-$(DATOMIC_VERSION)/config/dev-transactor.properties
-	./datomic-pro-$(DATOMIC_VERSION)/bin/transactor config/dev-transactor.properties &
+# without Docker
+# .PHONY: datomic-ci-start
+# datomic-ci-start:
+# 	curl -u $(DATOMIC_USERNAME):$(DATOMIC_PASSWORD) -SL https://my.datomic.com/repo/com/datomic/datomic-pro/$(DATOMIC_VERSION)/datomic-pro-$(DATOMIC_VERSION).zip -o datomic.zip
+# 	unzip datomic.zip
+# 	# rm -f datomic.zip
+# 	# cat test/datomic_template/dev-transactor-template.properties | sed "s/license-key=/license-key=$(DATOMIC_LICENSE_KEY)/" > datomic-pro-$(DATOMIC_VERSION)/config/dev-transactor.properties
+# 	cat datomic-pro-$(DATOMIC_VERSION)/config/samples/dev-transactor-template.properties | sed "s/license-key=/license-key=$(DATOMIC_LICENSE_KEY)/" > datomic-pro-$(DATOMIC_VERSION)/config/dev-transactor.properties
+# 	./datomic-pro-$(DATOMIC_VERSION)/bin/transactor config/dev-transactor.properties &
 
 
-# for CI datomic-docker!!!
-
-.PHONY: preparings-for-ci-tests-1
-preparings-for-ci-tests-1: install-karma datomic-docker-start server-start
-
-
-.PHONY: datomic-docker-start
-datomic-docker-start: Dockerfile_datomic
-	cat config/dev-transactor.properties | sed "s/license-key=/license-key=$(DATOMIC_LICENSE_KEY)/" > config/dev-transactor.properties
+.PHONY: _install-datomic-docker
+_install-datomic-docker: Dockerfile_datomic
+	test -n "$(DATOMIC_VERSION)"  # $$DATOMIC_VERSION
+	test -n "$(DATOMIC_USERNAME)"  # $$DATOMIC_USERNAME
+	test -n "$(DATOMIC_PASSWORD)"  # $$DATOMIC_PASSWORD
+	test -n "$(DATOMIC_LICENSE_KEY)"  # $$DATOMIC_LICENSE_KEY
+	test -n "$(DATOMIC_STORAGE_ADMIN_PASSWORD)"  # $$DATOMIC_STORAGE_ADMIN_PASSWORD
+	test -n "$(DATOMIC_STORAGE_DATOMIC_PASSWORD)"  # $$DATOMIC_STORAGE_DATOMIC_PASSWORD
+	cat config/dev-transactor-template.properties | envsubst > config/dev-transactor.properties
+	# cat config/dev-transactor.properties | sed "s/license-key=/license-key=$(DATOMIC_LICENSE_KEY)/" > config/dev-transactor.properties
+	# docker rm -f datomic-$(DATOMIC_VERSION)
+	# docker rmi datomic-pro-starter:$(DATOMIC_VERSION)
 	docker build -f Dockerfile_datomic --build-arg DATOMIC_USERNAME=$(DATOMIC_USERNAME) --build-arg DATOMIC_PASSWORD=$(DATOMIC_PASSWORD) --build-arg DATOMIC_VERSION=$(DATOMIC_VERSION) -t datomic-pro-starter:$(DATOMIC_VERSION) .
-	docker run -d -p 4334:4334 -p 4335:4335 -p 4336:4336 --name datomic datomic-pro-starter:$(DATOMIC_VERSION)
-	sleep 15
-	docker ps -a
+	docker run -d -p 4334:4334 -p 4335:4335 -p 4336:4336 --name datomic-$(DATOMIC_VERSION) datomic-pro-starter:$(DATOMIC_VERSION)

@@ -73,8 +73,8 @@
       (t/wait-for [:fetch-finished]
                   (is (= (-> @m :db-name) {:db-name "test"}))
 
-                  ; (when-not (= (-> @m :db-name) {:db-name "test"})
-                  ;     (throw (js/Error. "Did not switch to test database!")))
+                  (when-not (= (-> @m :db-name) {:db-name "test"})
+                      (throw (js/Error. "Did not switch to test database!")))
 
                   (rf/dispatch-sync [:set-values-by-paths {:order order-template
                                                            :order-history nil
